@@ -1,8 +1,19 @@
 <template>
   <Teleport :to="teleportTo">
     <div class="pointer-events-none fixed inset-0 z-toast" aria-live="off">
+      <!--
+        Empty anchors are pure layout scaffolding: `.toast-anchor` and
+        `.toast-anchor-grid` both set `pointer-events: none`, so an empty anchor
+        never intercepts input (verified against the stylesheet). `v-show` is
+        therefore DOM and accessibility-tree hygiene, not an input fix: it keeps
+        six permanently-present empty regions out of the tree while no toast is
+        anchored there. Layout classes own `display` (`flex`/`grid`), and
+        `v-show` only toggles an inline `display: none`, so the class wins again
+        the moment a toast arrives.
+      -->
       <div
         v-for="anchor in NOTIFICATION_POSITIONS"
+        v-show="isAnchorVisible(anchor)"
         :key="anchor"
         :data-anchor="anchor"
         :data-active="isAnchorVisible(anchor) ? 'true' : 'false'"
