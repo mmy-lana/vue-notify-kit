@@ -1,12 +1,20 @@
 <template>
   <div
     ref="rootRef"
-    :class="[cardClasses, swipe.swipeClass.value, isInteractive ? 'pointer-events-auto' : '']"
+    :class="[
+      cardClasses,
+      swipe.swipeClass.value,
+      // Mutually exclusive with the `pointer-events-none` that `cardClasses`
+      // adds while dismissing. Both utilities have the same specificity, so a
+      // conflict would be decided by Tailwind's internal emission order — which
+      // this project cannot pin, because it depends on `tailwindcss: latest`.
+      isInteractive && !item.isDismissing ? 'pointer-events-auto' : '',
+    ]"
     :style="swipe.swipeStyle.value"
     :role="isUrgent ? 'alert' : 'status'"
     :aria-live="isUrgent ? 'assertive' : 'polite'"
     :aria-atomic="true"
-    :tabindex="0"
+    :tabindex="item.isDismissing ? -1 : 0"
     :data-notification-id="item.id"
     :data-paused="item.isPaused ? 'true' : 'false'"
     @pointerenter="handlePointerEnter"
@@ -184,7 +192,10 @@ const cardClasses = computed(() => [
   'relative w-full overflow-hidden rounded-card border border-l-4 border-slate-200 bg-white p-3.5 pr-3 shadow-lg transition-shadow',
   'dark:border-slate-800 dark:border-l-4 dark:bg-slate-900',
   BORDER_CLASSES[props.item.type],
-  props.item.isDismissing ? 'opacity-0' : '',
+  // A dismissing card fades over DISMISS_EXIT_DURATION but stays mounted, so
+  // without this it keeps live 44px hit targets and an already-dismissed action
+  // can still be activated by a click aimed at where it used to be.
+  props.item.isDismissing ? 'pointer-events-none opacity-0' : '',
   props.item.customClass ?? '',
 ]);
 
