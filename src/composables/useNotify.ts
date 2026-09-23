@@ -33,6 +33,7 @@ import {
   isNotificationType,
 } from '@/utils/constants';
 import { clampDuration, createNotification as buildNotification } from '@/utils/factory';
+import { resolveEffectivePosition } from '@/utils/position';
 import { monotonicNow } from '@/utils/time';
 
 import { useNotificationSound } from './useNotificationSound';
@@ -94,6 +95,21 @@ let listenersAttached = false;
 
 const storage = useNotifyStorage();
 const sound = useNotificationSound();
+
+/**
+ * Width of the viewport used for anchor normalization.
+ *
+ * Read live rather than cached: eviction happens on every push, and a resize
+ * between two pushes must be reflected immediately. Non-browser runtimes report
+ * an infinite width, which keeps eviction on the raw (desktop) anchors.
+ */
+function getViewportWidth(): number {
+  if (typeof window === 'undefined') {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  return window.innerWidth;
+}
 
 /* -------------------------------------------------------------------------- */
 /* Frame scheduling (rAF with a timer fallback for non-browser runtimes)        */
@@ -243,12 +259,22 @@ function recordHistory(item: NotificationItem): void {
  * full stack is entirely sticky, the incoming notification is allowed to exceed
  * the limit rather than silently dropping a pending operation.
  *
+ * Counting is done on the **effective** anchor, not the requested one: below the
+ * mobile breakpoint `top-left`, `top-center` and `top-right` all render into one
+ * stack, so evicting per raw position let a single visual stack reach 15 cards
+ * against a documented cap of 5.
+ *
  * Evicted items are both untracked and appended to history, so the log stays a
  * complete record even though they skip the exit animation.
  */
 function evictOverflow(position: NotificationPosition): void {
+  const viewportWidth = getViewportWidth();
+  const targetAnchor = resolveEffectivePosition(position, viewportWidth);
+
   const samePosition = notifications.value.filter(
-    (item) => item.position === position && !item.isDismissing,
+    (item) =>
+      resolveEffectivePosition(item.position, viewportWidth) === targetAnchor &&
+      !item.isDismissing,
   );
 
   if (samePosition.length < MAX_STACK_PER_POSITION) {

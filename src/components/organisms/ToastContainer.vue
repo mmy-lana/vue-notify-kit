@@ -55,6 +55,7 @@ import ToastItem from '@/components/molecules/ToastItem.vue';
 import { useNotify } from '@/composables/useNotify';
 import type { NotificationItem, NotificationPosition, StackingMode } from '@/types/notify';
 import { MOBILE_BREAKPOINT_PX, NOTIFICATION_POSITIONS } from '@/utils/constants';
+import { resolveEffectivePosition } from '@/utils/position';
 
 const props = withDefaults(
   defineProps<{
@@ -72,7 +73,7 @@ const props = withDefaults(
   },
 );
 
-const { byPosition, dismiss, pause, resume } = useNotify();
+const { byPosition, notifications, dismiss, pause, resume } = useNotify();
 
 const hoveredAnchor = ref<NotificationPosition | null>(null);
 const viewportWidth = ref(getViewportWidth());
@@ -100,18 +101,14 @@ onBeforeUnmount(() => {
   }
 });
 
-const isMobile = computed(() => viewportWidth.value < props.mobileBreakpoint);
-
 /**
  * Mobile normalization: every position collapses to the matching centered
  * anchor, so thumb reach and swipe gestures stay consistent on small screens.
+ * Delegated to the shared resolver so the viewport and the store's eviction
+ * policy can never disagree about which stack an item occupies.
  */
 function resolvePosition(position: NotificationPosition): NotificationPosition {
-  if (!isMobile.value) {
-    return position;
-  }
-
-  return position.startsWith('top') ? 'top-center' : 'bottom-center';
+  return resolveEffectivePosition(position, viewportWidth.value, props.mobileBreakpoint);
 }
 
 const grouped = computed<Record<NotificationPosition, NotificationItem[]>>(() => {
@@ -123,6 +120,32 @@ const grouped = computed<Record<NotificationPosition, NotificationItem[]>>(() =>
     for (const item of byPosition.value[position]) {
       buckets[resolvePosition(item.position)].push(item);
     }
+  }
+
+  // Insertion index in the store array; later push means newer. Used as the
+  // tiebreaker because `createdAt` is `Date.now()` with millisecond resolution
+  // and a burst (`burstFive()` pushes six cards) routinely lands several
+  // notifications inside the same millisecond.
+  const insertionIndex = new Map<string, number>();
+
+  notifications.value.forEach((item, index) => {
+    insertionIndex.set(item.id, index);
+  });
+
+  // Normalization merges up to three source anchors into one bucket, so
+  // concatenating the per-source lists is no longer globally chronological: a
+  // newer `top-right` card would render below an older `top-left` one. Every
+  // layout decision downstream (stack offsets, scale, z-index, and "newest is
+  // nearest the viewport edge") assumes index 0 is the newest card, so each
+  // bucket is re-sorted newest first, with ties broken by insertion order.
+  for (const position of NOTIFICATION_POSITIONS) {
+    buckets[position].sort((first, second) => {
+      if (second.createdAt !== first.createdAt) {
+        return second.createdAt - first.createdAt;
+      }
+
+      return (insertionIndex.get(second.id) ?? 0) - (insertionIndex.get(first.id) ?? 0);
+    });
   }
 
   return buckets;
