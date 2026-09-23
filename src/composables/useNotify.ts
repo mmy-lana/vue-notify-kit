@@ -49,8 +49,16 @@ export interface NotifyApi {
   readonly createNotification: NotificationFactory;
   /** Patches a live notification and reconciles its countdown ticker. */
   updateNotification(id: string, patch: Partial<NotificationItem>): void;
-  /** Runs the idempotent dismissal protocol for one notification. */
-  dismiss(id: string): void;
+  /**
+   * Runs the idempotent dismissal protocol for one notification.
+   *
+   * `immediate` skips the exit window and splices synchronously. It exists for
+   * callers that already played their own exit animation — the swipe gesture
+   * translates the card off-screen over `DISMISS_EXIT_DURATION` before calling
+   * back, so waiting a second time kept the item in memory for 400ms after the
+   * finger left the screen.
+   */
+  dismiss(id: string, immediate?: boolean): void;
   /** Dismisses every notification, including non-dismissible ones. */
   dismissAll(): void;
   /** Dismisses every notification anchored at one position. */
@@ -498,11 +506,31 @@ const notifyFn = Object.assign(
 /* Dismissal protocol                                                          */
 /* -------------------------------------------------------------------------- */
 
-function dismiss(id: string): void {
+/** Splices an item out of the live array and drops any focus-pause bookkeeping. */
+function removeFromState(id: string): void {
+  const index = notifications.value.findIndex((item) => item.id === id);
+
+  if (index !== -1) {
+    notifications.value.splice(index, 1);
+  }
+
+  focusPausedIds.delete(id);
+}
+
+/**
+ * Idempotent dismissal protocol.
+ *
+ * `immediate` splices the item out synchronously instead of waiting out the
+ * exit transition. Callers that run their own exit animation (the swipe
+ * gesture) must pass it, otherwise the item survives in memory for
+ * `DISMISS_EXIT_DURATION` twice over: once for the gesture animation and again
+ * for a fade that has already visually completed.
+ */
+function dismiss(id: string, immediate = false): void {
   const target = findNotification(id);
 
-  // Idempotency guard: also protects the 200ms exit window from duplicate
-  // history entries and double splice scheduling.
+  // Idempotency guard: also protects the exit window from duplicate history
+  // entries and double splice scheduling.
   if (target === undefined || target.isDismissing) {
     return;
   }
@@ -511,14 +539,13 @@ function dismiss(id: string): void {
   stopTicker(id);
   recordHistory(target);
 
+  if (immediate) {
+    removeFromState(id);
+    return;
+  }
+
   setTimeout(() => {
-    const index = notifications.value.findIndex((item) => item.id === id);
-
-    if (index !== -1) {
-      notifications.value.splice(index, 1);
-    }
-
-    focusPausedIds.delete(id);
+    removeFromState(id);
   }, DISMISS_EXIT_DURATION);
 }
 

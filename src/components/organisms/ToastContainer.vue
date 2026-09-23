@@ -37,7 +37,7 @@
             <ToastItem
               :item="item"
               :is-interactive="isSlotInteractive(anchor, index)"
-              @dismiss="dismiss(item.id)"
+              @dismiss="dismiss(item.id, $event)"
               @pause="pause(item.id)"
               @resume="resume(item.id)"
             />

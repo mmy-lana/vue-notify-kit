@@ -112,8 +112,15 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{
-  /** Requests removal through the store dismissal protocol. */
-  dismiss: [];
+  /**
+   * Requests removal through the store dismissal protocol.
+   *
+   * `immediate` is set by the swipe gesture, which has already animated the
+   * card off-screen and therefore must not wait out the store's fade window a
+   * second time. Button and keyboard dismissal leave it unset so the card keeps
+   * its exit transition.
+   */
+  dismiss: [immediate?: boolean];
   /** Freezes the countdown (hover, focus, or touch hold). */
   pause: [];
   /** Restarts the countdown after a pause. */
@@ -193,7 +200,10 @@ const rootRef = ref<HTMLElement | null>(null);
 const swipe = useSwipeDismiss({
   element: rootRef,
   enabled: () => props.item.dismissible && !props.item.isDismissing,
-  onDismiss: () => emit('dismiss'),
+  // The gesture already parked the card off-screen during its own exit
+  // animation, so the store must splice it immediately rather than fade an
+  // invisible card for a further DISMISS_EXIT_DURATION.
+  onDismiss: () => emit('dismiss', true),
 });
 
 /**
