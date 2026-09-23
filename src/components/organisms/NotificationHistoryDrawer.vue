@@ -270,7 +270,14 @@ function flashMessage(message: string): void {
   }, 2500);
 }
 
-/** Serializes the log and hands it to the browser as a download. */
+/**
+ * Serializes the log and hands it to the browser as a download.
+ *
+ * `exportHistory()` redacts credential-shaped values (bearer tokens, JWTs,
+ * passwords, card numbers) before serialization, because this file is the only
+ * history artefact that leaves the browser. The confirmation message says so
+ * explicitly rather than letting the user assume the download is verbatim.
+ */
 function exportJson(): void {
   const payload = exportHistory();
 
@@ -284,7 +291,7 @@ function exportJson(): void {
     anchor.click();
     document.body.removeChild(anchor);
     URL.revokeObjectURL(url);
-    flashMessage('History exported');
+    flashMessage('History exported — sensitive values masked');
   } catch {
     flashMessage('Export is unavailable in this browser');
   }

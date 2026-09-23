@@ -66,7 +66,7 @@ export interface NotifyStorageApi {
   removeHistoryRecord(id: string): void;
   /** Empties the history log and persists the empty state immediately. */
   clearHistory(): void;
-  /** Pretty-printed JSON snapshot of the history log. */
+  /** Pretty-printed JSON snapshot of the history log, with secrets masked. */
   exportHistory(): string;
   /** Merges a partial playground configuration and validates the result. */
   updatePlaygroundConfig(patch: Partial<PlaygroundConfiguration>): void;
@@ -272,6 +272,77 @@ function sanitizePlaygroundConfig(raw: unknown): PlaygroundConfiguration {
 
 function sanitizeColorTheme(raw: unknown): ColorTheme {
   return isColorTheme(raw) ? raw : 'system';
+}
+
+/* -------------------------------------------------------------------------- */
+/* Export-time redaction                                                       */
+/* -------------------------------------------------------------------------- */
+
+/** Marker substituted for every redacted value. */
+const REDACTION_MASK = '****';
+
+/**
+ * Patterns redacted from notification text on export.
+ *
+ * Order matters: a JWT is masked before the broader bearer rule can stop at its
+ * first dot, and credential `key=value` pairs are matched before the
+ * card-number rule can consume the digits inside a value.
+ *
+ * Bias is deliberately towards false positives. Over-masking an export costs a
+ * little readability; under-masking ships a live credential or a card number to
+ * the user's disk. The persisted history is left untouched — only the exported
+ * snapshot is redacted, so the in-app log keeps full fidelity.
+ */
+const REDACTION_RULES: ReadonlyArray<{ pattern: RegExp; replacement: string }> = [
+  // JWT: header.payload.signature.
+  { pattern: /\beyJ[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]{4,}\b/g, replacement: REDACTION_MASK },
+  // Authorization headers and bare bearer/basic credentials.
+  { pattern: /\b(?:bearer|basic)\s+[A-Za-z0-9\-._~+/]{6,}=*/gi, replacement: REDACTION_MASK },
+  // Credential pairs: password=..., api_key: ..., access_token=...
+  // The key name and separator are captured separately so the replacement can
+  // keep them: `api_key=****` stays auditable, whereas dropping the key would
+  // leave an anonymous `=****` and hide which field was redacted.
+  {
+    pattern:
+      /\b(password|passwd|pwd|passphrase|secret|client[_-]?secret|api[_-]?key|access[_-]?token|refresh[_-]?token|auth[_-]?token|token|otp|pin)\b(\s*[:=]\s*)("[^"]*"|'[^']*'|[^\s,;]+)/gi,
+    replacement: `$1$2${REDACTION_MASK}`,
+  },
+  // Payment-card-like digit runs: 13-19 digits, tolerating spaces and dashes.
+  { pattern: /\b(?:\d[ -]?){12,18}\d\b/g, replacement: REDACTION_MASK },
+];
+
+/**
+ * Redacts credential-shaped substrings from one piece of free text.
+ *
+ * Titles are redacted alongside descriptions: a token pasted into a title is the
+ * same leak, and exports are the one artefact that leaves the browser.
+ */
+function redactSensitiveText(value: string | undefined): string | undefined {
+  if (value === undefined || value.length === 0) {
+    return value;
+  }
+
+  let redacted = value;
+
+  for (const rule of REDACTION_RULES) {
+    redacted = redacted.replace(rule.pattern, rule.replacement);
+  }
+
+  return redacted;
+}
+
+/** Returns a redacted copy of a history record, leaving the original untouched. */
+function redactHistoryRecord(record: NotificationHistoryRecord): NotificationHistoryRecord {
+  const redacted: NotificationHistoryRecord = { ...record, title: redactSensitiveText(record.title) ?? '' };
+  const description = redactSensitiveText(record.description);
+
+  if (description === undefined) {
+    delete redacted.description;
+  } else {
+    redacted.description = description;
+  }
+
+  return redacted;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -605,9 +676,17 @@ const api: NotifyStorageApi = {
     schedulePersist(STORAGE_KEYS.history, history.value, true);
   },
 
+  /**
+   * Pretty-printed JSON snapshot of the history log with credential-shaped
+   * values (bearer tokens, JWTs, passwords, card numbers) masked.
+   *
+   * This is the only history surface that leaves the browser, so redaction
+   * happens here rather than at write time: the in-app log keeps full fidelity
+   * while the downloaded artefact cannot leak a live secret.
+   */
   exportHistory(): string {
     try {
-      return JSON.stringify(history.value, null, 2);
+      return JSON.stringify(history.value.map(redactHistoryRecord), null, 2);
     } catch {
       return '[]';
     }
