@@ -196,12 +196,46 @@ watch(
   },
 );
 
+/**
+ * Largest time value the `Date` type can represent (8.64e15 ms, ~year 275760).
+ * At or beyond it `toISOString()` throws `RangeError: Invalid time value`.
+ */
+const MAX_TIME_VALUE = 8.64e15;
+
+/**
+ * Rejects values the platform date APIs cannot represent.
+ *
+ * History records are hydrated from `localStorage`, which is untrusted input: a
+ * record can carry a finite-but-absurd epoch such as `1e25` that passes
+ * `Number.isFinite` in the storage sanitizer yet still detonates here.
+ */
+function isSafeTimestamp(timestamp: number): boolean {
+  return Number.isFinite(timestamp) && timestamp > 0 && timestamp < MAX_TIME_VALUE;
+}
+
+/**
+ * ISO string for the `<time datetime>` attribute, or an empty string when the
+ * value cannot be represented. This runs inside the template, so throwing here
+ * would tear down the whole drawer subtree instead of degrading one field.
+ */
 function toIso(timestamp: number): string {
-  return new Date(timestamp).toISOString();
+  if (!isSafeTimestamp(timestamp)) {
+    return '';
+  }
+
+  try {
+    return new Date(timestamp).toISOString();
+  } catch {
+    return '';
+  }
 }
 
 /** Compact relative timestamp for the log list. */
 function formatRelative(timestamp: number): string {
+  if (!isSafeTimestamp(timestamp)) {
+    return 'time unavailable';
+  }
+
   const delta = Date.now() - timestamp;
 
   if (delta < 5_000) {
