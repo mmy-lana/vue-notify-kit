@@ -1,0 +1,13 @@
+@import "tailwindcss";
+
+@theme {
+  --color-notify-info: #0284c7;
+  --color-notify-success: #16a34a;
+  --color-notify-warning: #d97706;
+  --color-notify-error: #dc2626;
+  --color-notify-neutral: #475569;
+
+  --z-index-toast: 9999;
+  --z-index-drawer-panel: 9100;
+  --z-index-drawer-nav: 9000;
+}
