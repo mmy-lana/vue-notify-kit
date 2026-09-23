@@ -151,12 +151,20 @@
   }
 
   /* Toast viewport anchors ------------------------------------------------- */
+  /* These own the display property: `flex` for expanded lists, `grid` for
+     collapsed stacks where every card shares one cell. */
   .toast-anchor {
-    @apply pointer-events-none flex w-full flex-col gap-2.5;
+    display: flex;
+    width: 100%;
+    flex-direction: column;
+    gap: 0.625rem;
+    pointer-events: none;
   }
 
   .toast-anchor-grid {
-    @apply pointer-events-none grid w-full;
+    display: grid;
+    width: 100%;
+    pointer-events: none;
   }
 
   .toast-anchor-grid > * {

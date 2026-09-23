@@ -39,15 +39,18 @@
   </div>
 </template>
 
-<script setup lang="ts">
+<!--
+  Generic over the option value type so `v-model` can bind straight to narrowed
+  unions such as `NotificationPosition` without widening to `string`.
+-->
+<script setup lang="ts" generic="T extends string">
 import { computed, useId } from 'vue';
 
 import BaseIcon from './BaseIcon.vue';
 
-/** Shape of a selectable option (structurally typed for callers). */
 interface SelectOption {
   /** Value written to the bound model. */
-  value: string;
+  value: T;
   /** Human-readable option label. */
   label: string;
   /** Renders the option as unselectable. */
@@ -59,7 +62,7 @@ const props = withDefaults(
     /** Visible field label. */
     label?: string;
     /** Selectable options. */
-    options: SelectOption[];
+    options: ReadonlyArray<SelectOption>;
     /** Helper text rendered when there is no error. */
     hint?: string;
     /** Validation message; switches the field into its error state. */
@@ -82,7 +85,7 @@ const props = withDefaults(
 );
 
 /** Two-way bound value via Vue 3.5 `defineModel()`. */
-const model = defineModel<string>({ default: '' });
+const model = defineModel<T>({ required: true });
 
 const uid = useId();
 const selectId = `base-select-${uid}`;
