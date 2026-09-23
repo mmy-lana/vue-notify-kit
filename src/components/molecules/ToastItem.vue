@@ -84,7 +84,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 
 import BaseBadge from '@/components/ui/BaseBadge.vue';
 import BaseButton from '@/components/ui/BaseButton.vue';
@@ -172,7 +172,17 @@ const cardClasses = computed(() => [
   props.item.customClass ?? '',
 ]);
 
+/**
+ * Template ref for the card root element. This exact ref object is handed to
+ * the gesture engine: the engine binds `touchmove` imperatively with
+ * `{ passive: false }` in `onMounted`, so it needs the ref the template
+ * actually populates. Without the linkage the listener is never attached and
+ * the swipe gesture cannot cancel vertical scroll.
+ */
+const rootRef = ref<HTMLElement | null>(null);
+
 const swipe = useSwipeDismiss({
+  element: rootRef,
   enabled: () => props.item.dismissible && !props.item.isDismissing,
   onDismiss: () => emit('dismiss'),
 });

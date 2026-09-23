@@ -26,6 +26,15 @@ import {
 export type SwipePhase = 'idle' | 'dragging' | 'snapping' | 'committing';
 
 export interface UseSwipeDismissOptions {
+  /**
+   * Template ref of the swipeable element, owned by the caller.
+   *
+   * This MUST be the same ref object the template binds (`ref="rootRef"`).
+   * A privately created ref is unreachable from the template, so it stays
+   * `null` forever, `onMounted` bails out early, and the non-passive
+   * `touchmove` listener is never attached.
+   */
+  element?: Ref<HTMLElement | null>;
   /** Invoked once the exit animation finishes; performs the real dismissal. */
   onDismiss: () => void;
   /** Gate for the gesture (non-dismissible toasts pass `() => false`). */
@@ -64,7 +73,13 @@ export function useSwipeDismiss(options: UseSwipeDismissOptions): UseSwipeDismis
   const threshold = options.threshold ?? SWIPE_THRESHOLD_PX;
   const velocityThreshold = options.velocityThreshold ?? SWIPE_VELOCITY_THRESHOLD;
 
-  const elementRef = ref<HTMLElement | null>(null);
+  /**
+   * Resolved element ref. When the caller hands in its template ref we adopt
+   * that exact object; the internal ref only exists for headless usage where
+   * no template binding is involved.
+   */
+  const internalElementRef = ref<HTMLElement | null>(null);
+  const elementRef: Ref<HTMLElement | null> = options.element ?? internalElementRef;
   const phase = ref<SwipePhase>('idle');
   const offsetX = ref(0);
   const opacity = ref(1);
