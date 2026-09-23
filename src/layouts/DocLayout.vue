@@ -59,28 +59,54 @@
       <!-- Content ------------------------------------------------------ -->
       <main id="main-content" class="min-w-0 flex-1 py-5 pb-28 md:pb-8">
         <!--
-          Supply-chain guard. This repository is a reference architecture and is
-          marked `private` in package.json, so no `vue-notify-kit` artifact
-          exists on any registry: a reader who copies an install command from
-          these pages is one typo away from a typosquatted dependency. The notice
-          is sticky and rendered by the shared layout, so it appears at the top
-          of both the playground and the documentation views and stays visible
-          while installation snippets are on screen.
+          Supply-chain guard. This repository is `private` in package.json and no
+          `vue-notify-kit` artifact exists on any registry, so a reader who copies
+          an install command from these pages is one typo away from a
+          typosquatted dependency. The notice is rendered by the shared layout, so
+          it appears on both the playground and the documentation views.
 
-          `top-[3.75rem]` parks it exactly below the 60px sticky header (44px
-          tap-target floor plus 16px vertical padding), so it is never clipped.
+          Layering: `z-[8700]` sits above the sticky header (8500) and the mobile
+          quick-launch toolbar (8600), but below both drawers (9000/9100) and the
+          toast viewport (9999), so it can never cover a notification or a dialog.
+
+          `role="alert"` is deliberate rather than incidental: this is a security
+          warning, and an assertive announcement is the intended behaviour. The
+          element is not re-created on navigation (the layout persists across
+          routes), so it does not re-announce on every route change.
         -->
-        <p
-          role="note"
+        <aside
+          role="alert"
+          aria-label="Demo notice"
           data-testid="demo-notice"
-          class="sticky top-[3.75rem] z-[8400] mb-4 flex items-start gap-2 rounded-control border border-amber-300 bg-amber-50 px-3 py-2.5 text-xs font-medium text-amber-900 shadow-sm dark:border-amber-500/40 dark:bg-amber-950/60 dark:text-amber-100"
+          class="sticky top-16 z-[8700] mb-6 flex flex-col items-start justify-between gap-3 rounded-card border-2 border-amber-500/80 bg-amber-500/10 p-3.5 shadow-lg backdrop-blur-md sm:flex-row sm:items-center dark:border-amber-400/60 dark:bg-amber-950/80"
         >
-          <BaseIcon name="AlertTriangle" :size="16" class="mt-0.5 shrink-0" />
-          <span>
-            Interactive Demo &amp; Reference Architecture: This project is an in-repo service
-            template, not a published npm package. Copy components directly into your codebase.
-          </span>
-        </p>
+          <div class="flex items-start gap-2.5">
+            <BaseIcon
+              name="AlertTriangle"
+              :size="20"
+              class="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400"
+            />
+            <div class="min-w-0 text-xs leading-relaxed text-amber-950 dark:text-amber-100">
+              <strong class="font-bold tracking-wider text-amber-900 uppercase dark:text-amber-300">
+                [DEMO ONLY - NOT AN NPM PACKAGE]
+              </strong>
+              <p class="mt-0.5 break-words">
+                This website is an interactive component sandbox and in-repo service architecture. Do
+                NOT attempt to run
+                <code
+                  class="rounded bg-amber-200/80 px-1 py-0.5 font-mono text-[11px] font-semibold break-all text-amber-900 dark:bg-amber-900/60 dark:text-amber-200"
+                >npm install vue-notify-kit</code>. Copy the source files directly into your project
+                repository.
+              </p>
+            </div>
+          </div>
+          <RouterLink
+            to="/docs#installation"
+            class="tap-target inline-flex shrink-0 items-center justify-center rounded-control bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white shadow transition-colors hover:bg-amber-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600 dark:bg-amber-500 dark:text-slate-950 dark:hover:bg-amber-400"
+          >
+            Integration Guide
+          </RouterLink>
+        </aside>
 
         <slot />
       </main>
