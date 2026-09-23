@@ -168,11 +168,24 @@ const ANCHOR_CLASSES: Record<NotificationPosition, string> = {
   'top-left': 'top-0 left-0 items-start',
   'top-center': 'top-0 left-1/2 -translate-x-1/2 items-center',
   'top-right': 'top-0 right-0 items-end',
-  // Bottom anchors reserve room for the floating quick-launch bar on mobile so
-  // toasts never sit underneath it.
-  'bottom-left': 'bottom-0 left-0 items-start pb-20 md:pb-3',
-  'bottom-center': 'bottom-0 left-1/2 -translate-x-1/2 items-center pb-20 md:pb-3',
-  'bottom-right': 'bottom-0 right-0 items-end pb-20 md:pb-3',
+  /*
+   * Bottom anchors must clear the mobile quick-launch toolbar, which is pinned
+   * at `bottom-3` and stacks three 44px square buttons with 8px gaps:
+   * 3 * 44 + 2 * 8 + 12 = 160px of occupied height. The old `pb-20` (80px)
+   * reserve left the bottom half of every card underneath that bar.
+   *
+   * `pb-44` (176px) leaves a 16px gutter; `md:pb-3` restores the desktop inset
+   * once the toolbar is hidden (`md:hidden`).
+   *
+   * The `sm:pb-44` re-assertion is load-bearing, not redundant: the anchor also
+   * carries `p-2 sm:p-3`, and Tailwind emits every `sm:` utility *after* the
+   * base tier. Without it the `sm:p-3` shorthand would override the bottom
+   * padding for the whole 640-767px band, which is exactly where the toolbar is
+   * still on screen.
+   */
+  'bottom-left': 'bottom-0 left-0 items-start pb-44 sm:pb-44 md:pb-3',
+  'bottom-center': 'bottom-0 left-1/2 -translate-x-1/2 items-center pb-44 sm:pb-44 md:pb-3',
+  'bottom-right': 'bottom-0 right-0 items-end pb-44 sm:pb-44 md:pb-3',
 };
 
 /**
