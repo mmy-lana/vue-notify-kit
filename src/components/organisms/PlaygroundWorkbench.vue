@@ -429,7 +429,10 @@ const generatedCode = computed(() => {
   const input = currentInput();
   const lines: string[] = [];
 
-  lines.push("import { useNotify } from 'vue-notify-kit';");
+  // Local path only: the project is private and unpublished, so a bare
+  // 'vue-notify-kit' specifier in generated code would be an unresolved import
+  // and a typosquatting target.
+  lines.push("import { useNotify } from '@/composables/useNotify';");
   lines.push('');
   lines.push('const { notify } = useNotify();');
   lines.push('');

@@ -58,6 +58,30 @@
 
       <!-- Content ------------------------------------------------------ -->
       <main id="main-content" class="min-w-0 flex-1 py-5 pb-28 md:pb-8">
+        <!--
+          Supply-chain guard. This repository is a reference architecture and is
+          marked `private` in package.json, so no `vue-notify-kit` artifact
+          exists on any registry: a reader who copies an install command from
+          these pages is one typo away from a typosquatted dependency. The notice
+          is sticky and rendered by the shared layout, so it appears at the top
+          of both the playground and the documentation views and stays visible
+          while installation snippets are on screen.
+
+          `top-[3.75rem]` parks it exactly below the 60px sticky header (44px
+          tap-target floor plus 16px vertical padding), so it is never clipped.
+        -->
+        <p
+          role="note"
+          data-testid="demo-notice"
+          class="sticky top-[3.75rem] z-[8400] mb-4 flex items-start gap-2 rounded-control border border-amber-300 bg-amber-50 px-3 py-2.5 text-xs font-medium text-amber-900 shadow-sm dark:border-amber-500/40 dark:bg-amber-950/60 dark:text-amber-100"
+        >
+          <BaseIcon name="AlertTriangle" :size="16" class="mt-0.5 shrink-0" />
+          <span>
+            Interactive Demo &amp; Reference Architecture: This project is an in-repo service
+            template, not a published npm package. Copy components directly into your codebase.
+          </span>
+        </p>
+
         <slot />
       </main>
 

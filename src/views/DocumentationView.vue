@@ -20,7 +20,9 @@
     <section id="installation" class="scroll-mt-20">
       <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-50">Installation</h2>
       <p class="mt-2 text-sm muted-text">
-        Add the package and mount the viewport once, near the root of your application.
+        This repository is a reference architecture, not a published package. Copy the primitives
+        below into your own project, then mount the viewport once, near the root of your
+        application.
       </p>
       <div class="mt-3 flex flex-col gap-3">
         <CodeSnippetViewer :code="INSTALL_SNIPPET" label="terminal" language="bash" max-height="12rem" />
@@ -299,16 +301,28 @@ import { NOTIFICATION_POSITIONS } from '@/utils/constants';
 const { history, historyLimit, isPersistent } = useNotifyStorage();
 const historyDrawer = useHistoryDrawer();
 
-const INSTALL_SNIPPET = `# pnpm
-pnpm add vue-notify-kit
+// NOTE: this project is `private` and unpublished, so there is deliberately no
+// registry install command here. Publishing one would turn every copy-paste of
+// this page into a supply-chain (typosquatting) exposure.
+const INSTALL_SNIPPET = `# vue-notify-kit is an in-repo reference implementation.
+# It is NOT published to npm, so there is nothing to install.
+# Copy the primitives you need into your own project:
 
-# npm
-npm install vue-notify-kit`;
+mkdir -p src/composables src/components src/utils src/types
+cp <this-repo>/src/composables/useNotify.ts        src/composables/
+cp <this-repo>/src/composables/useNotifyStorage.ts src/composables/
+cp <this-repo>/src/composables/useSwipeDismiss.ts  src/composables/
+cp <this-repo>/src/composables/useNotificationSound.ts src/composables/
+cp -r <this-repo>/src/components/molecules src/components/
+cp -r <this-repo>/src/components/organisms src/components/
+cp -r <this-repo>/src/components/ui         src/components/
+cp -r <this-repo>/src/utils src/utils/
+cp -r <this-repo>/src/types src/types/`;
 
 // NOTE: the closing tags below are written with an escaped slash so the SFC
 // parser does not mistake them for the end of this component's own script block.
 const MOUNT_SNIPPET = `<script setup lang="ts">
-import { DocLayout } from 'vue-notify-kit';
+import DocLayout from '@/layouts/DocLayout.vue';
 <\/script>
 
 <template>
@@ -317,7 +331,8 @@ import { DocLayout } from 'vue-notify-kit';
   </DocLayout>
 <\/template>`;
 
-const QUICK_START_SNIPPET = `import { useNotify } from 'vue-notify-kit';
+const QUICK_START_SNIPPET = `// Local path in your own project — there is no 'vue-notify-kit' package.
+import { useNotify } from '@/composables/useNotify';
 
 const { notify } = useNotify();
 
