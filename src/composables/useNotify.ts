@@ -81,7 +81,11 @@ export interface NotifyApi {
   setMuted(value: boolean): void;
   /** Flips the master mute switch; returns the new value. */
   toggleMuted(): boolean;
-  /** Detaches global listeners once the final consumer releases the store. */
+  /**
+   * Releases this consumer. Global listeners and tickers are only torn down once
+   * the last consumer has gone *and* no notification is still on screen, so a
+   * pending toast always finishes its countdown.
+   */
   dispose(): void;
 }
 
@@ -101,8 +105,23 @@ const focusPausedIds = new Set<string>();
 let consumers = 0;
 let listenersAttached = false;
 
-const storage = useNotifyStorage();
-const sound = useNotificationSound();
+/**
+ * True while the store has handed its downstream pipelines back through their
+ * `dispose()` methods.
+ *
+ * Both pipelines re-activate only through their own factory, so a revive must
+ * call `useNotifyStorage()` / `useNotificationSound()` again. Reusing the
+ * captured objects instead would leave a live-looking but inert pipeline behind,
+ * and history would silently stop persisting.
+ */
+let resourcesReleased = false;
+
+/**
+ * The pipelines are re-acquired rather than bound once, so the store can be torn
+ * down and revived without losing persistence or the audio unlock listeners.
+ */
+let storage = useNotifyStorage();
+let sound = useNotificationSound();
 
 /**
  * Width of the viewport used for anchor normalization.
@@ -506,7 +525,13 @@ const notifyFn = Object.assign(
 /* Dismissal protocol                                                          */
 /* -------------------------------------------------------------------------- */
 
-/** Splices an item out of the live array and drops any focus-pause bookkeeping. */
+/**
+ * Splices an item out of the live array and drops any focus-pause bookkeeping.
+ *
+ * This is the only path that can empty the array, so it is also where a
+ * teardown that was deferred by {@link maybeReleaseResources} is finally allowed
+ * to run.
+ */
 function removeFromState(id: string): void {
   const index = notifications.value.findIndex((item) => item.id === id);
 
@@ -515,6 +540,7 @@ function removeFromState(id: string): void {
   }
 
   focusPausedIds.delete(id);
+  maybeReleaseResources();
 }
 
 /**
@@ -676,6 +702,56 @@ function detachListeners(): void {
   listenersAttached = false;
 }
 
+/**
+ * Releases every resource the store owns. Only reachable through
+ * {@link maybeReleaseResources}, which enforces that nothing is still on screen.
+ */
+function releaseResources(): void {
+  stopAllTickers();
+  focusPausedIds.clear();
+  detachListeners();
+  storage.dispose();
+  sound.dispose();
+  resourcesReleased = true;
+}
+
+/**
+ * Idempotent re-acquisition, called on every entry point into the store.
+ *
+ * A revival must go back through the pipeline factories, because both downstream
+ * singletons activate lazily and treat a second factory call after a full
+ * teardown as a fresh activation.
+ */
+function acquireResources(): void {
+  attachListeners();
+
+  if (!resourcesReleased) {
+    return;
+  }
+
+  storage = useNotifyStorage();
+  sound = useNotificationSound();
+  resourcesReleased = false;
+}
+
+/**
+ * Tears the store down only when it is genuinely idle: no component holds it and
+ * no notification is still on screen.
+ *
+ * The second half of that condition is what prevents an unrelated component's
+ * unmount from killing an in-flight toast. A standalone `notify()` never
+ * registers a consumer, so before this guard the sequence "temporary component
+ * mounts, `notify()` fires, component unmounts, `dispose()` runs" stopped every
+ * rAF ticker and left live toasts frozen on screen with no countdown.
+ */
+function maybeReleaseResources(): void {
+  if (consumers > 0 || notifications.value.length > 0) {
+    return;
+  }
+
+  releaseResources();
+}
+
 /* -------------------------------------------------------------------------- */
 /* Derived state                                                               */
 /* -------------------------------------------------------------------------- */
@@ -724,16 +800,7 @@ const api: NotifyApi = {
     }
 
     consumers -= 1;
-
-    if (consumers > 0) {
-      return;
-    }
-
-    stopAllTickers();
-    focusPausedIds.clear();
-    detachListeners();
-    storage.dispose();
-    sound.dispose();
+    maybeReleaseResources();
   },
 };
 
@@ -741,18 +808,20 @@ const api: NotifyApi = {
  * Accesses the shared notification store.
  *
  * Safe to call from component setup or plain modules. Global key/focus
- * listeners are armed on first use and released by the final `dispose()`.
+ * listeners are armed on first use and released by the final `dispose()`, but
+ * only once no notification is still on screen — a pending toast keeps the store
+ * alive and is allowed to finish its countdown and auto-dismiss.
  */
 export function useNotify(): NotifyApi {
   consumers += 1;
-  attachListeners();
+  acquireResources();
 
   return api;
 }
 
 /** Convenience re-export so consumers can fire a notification without setup. */
 export function notify(input: CreateNotificationInput): string {
-  attachListeners();
+  acquireResources();
   return push(input);
 }
 
@@ -761,7 +830,7 @@ export function notifyPromiseBridge<T>(
   executor: () => Promise<T>,
   messages: PromiseNotificationMessages<T>,
 ): Promise<T> {
-  attachListeners();
+  acquireResources();
   return notifyPromise(executor, messages);
 }
 

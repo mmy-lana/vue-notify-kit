@@ -502,14 +502,14 @@ const STORE_API_ROWS: DocRow[] = [
 
 const STORE_METHOD_ROWS: DocRow[] = [
   { name: 'updateNotification(id, patch)', type: 'void', description: 'Patches an item and reconciles its ticker (0 → positive re-arms).' },
-  { name: 'dismiss(id)', type: 'void', description: 'Idempotent: logs history once, animates out, then splices.' },
+  { name: 'dismiss(id, immediate?)', type: 'void', description: 'Idempotent: logs history once, animates out, then splices. `immediate` skips the exit window for callers that animated the card themselves (swipe).' },
   { name: 'dismissAll()', type: 'void', description: 'Dismisses everything, including non-dismissible cards.' },
   { name: 'dismissPosition(position)', type: 'void', description: 'Clears a single anchor.' },
   { name: 'pause(id) / resume(id)', type: 'void', description: 'Exact-time freeze and re-arm for one card.' },
   { name: 'pauseAll() / resumeAll()', type: 'void', description: 'Bulk freeze and re-arm.' },
   { name: 'createNotification(input)', type: 'NotificationItem', description: 'Canonical factory with clamping and validation.' },
   { name: 'setMuted(flag) / toggleMuted()', type: 'void | boolean', description: 'Global audio control.' },
-  { name: 'dispose()', type: 'void', description: 'Releases global listeners on the final consumer.' },
+  { name: 'dispose()', type: 'void', description: 'Releases this consumer. Global listeners and tickers are torn down only once the last consumer is gone and no notification is still on screen.' },
 ];
 
 const ITEM_SCHEMA_ROWS: DocRow[] = [
