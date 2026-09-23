@@ -219,7 +219,7 @@
         </p>
       </section>
 
-      <section class="surface-card p-4">
+      <section id="payload" class="surface-card scroll-mt-20 p-4">
         <h2 class="section-title">Payload inspector</h2>
         <p class="mt-1 text-xs muted-text">
           Exactly what <code class="font-mono">notify()</code> receives after clamping and validation.
@@ -229,7 +229,9 @@
         </div>
       </section>
 
-      <CodeSnippetViewer :code="generatedCode" label="usage.vue" language="ts" max-height="20rem" />
+      <div id="generated-code" class="scroll-mt-20">
+        <CodeSnippetViewer :code="generatedCode" label="usage.vue" language="ts" max-height="20rem" />
+      </div>
     </div>
   </div>
 </template>

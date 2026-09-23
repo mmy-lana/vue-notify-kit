@@ -146,9 +146,11 @@ const ANCHOR_CLASSES: Record<NotificationPosition, string> = {
   'top-left': 'top-0 left-0 items-start',
   'top-center': 'top-0 left-1/2 -translate-x-1/2 items-center',
   'top-right': 'top-0 right-0 items-end',
-  'bottom-left': 'bottom-0 left-0 items-start',
-  'bottom-center': 'bottom-0 left-1/2 -translate-x-1/2 items-center',
-  'bottom-right': 'bottom-0 right-0 items-end',
+  // Bottom anchors reserve room for the floating quick-launch bar on mobile so
+  // toasts never sit underneath it.
+  'bottom-left': 'bottom-0 left-0 items-start pb-20 md:pb-3',
+  'bottom-center': 'bottom-0 left-1/2 -translate-x-1/2 items-center pb-20 md:pb-3',
+  'bottom-right': 'bottom-0 right-0 items-end pb-20 md:pb-3',
 };
 
 /**

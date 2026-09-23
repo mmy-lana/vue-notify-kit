@@ -1,9 +1,11 @@
 <template>
-  <div class="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+  <DocLayout>
     <RouterView />
-  </div>
+  </DocLayout>
 </template>
 
 <script setup lang="ts">
 import { RouterView } from 'vue-router';
+
+import DocLayout from '@/layouts/DocLayout.vue';
 </script>

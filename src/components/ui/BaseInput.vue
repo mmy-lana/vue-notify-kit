@@ -29,6 +29,7 @@
         :maxlength="maxlength"
         :autocomplete="autocomplete"
         :inputmode="inputmode"
+        :aria-label="ariaLabel"
         :aria-invalid="error ? 'true' : undefined"
         :aria-describedby="describedBy"
         :class="[controlClasses, $slots.prefix ? 'pl-10' : '', $slots.suffix ? 'pr-10' : '']"
@@ -68,6 +69,8 @@ const props = withDefaults(
     error?: string;
     /** Native form field name. */
     name?: string;
+    /** Accessible name when no visible label is rendered. */
+    ariaLabel?: string;
     /** Disables the control. */
     disabled?: boolean;
     /** Read-only but still focusable and copyable. */
@@ -88,6 +91,7 @@ const props = withDefaults(
     hint: undefined,
     error: undefined,
     name: undefined,
+    ariaLabel: undefined,
     disabled: false,
     readonly: false,
     required: false,
