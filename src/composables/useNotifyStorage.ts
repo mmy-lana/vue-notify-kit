@@ -31,7 +31,6 @@ import {
   isColorTheme,
   isNotificationPosition,
   isNotificationType,
-  isPlainRecord,
   isStackingMode,
   isTriggerSource,
 } from '@/utils/constants';
@@ -39,6 +38,7 @@ import {
   normalizeBoolean,
   normalizeOptionalString,
   normalizeText,
+  sanitizeObjectRecord,
   toFiniteNumber,
 } from '@/utils/coerce';
 import { clampDuration } from '@/utils/factory';
@@ -185,33 +185,35 @@ function readRaw(storage: Storage, key: StorageKey): string | null {
 /* -------------------------------------------------------------------------- */
 
 function sanitizeHistoryRecord(raw: unknown): NotificationHistoryRecord | null {
-  if (!isPlainRecord(raw)) {
+  const safe = sanitizeObjectRecord(raw);
+
+  if (safe === null) {
     return null;
   }
 
-  const id = normalizeText(raw.id);
-  const title = normalizeText(raw.title);
-  const timestamp = toFiniteNumber(raw.timestamp);
-  const dismissedAt = toFiniteNumber(raw.dismissedAt);
+  const id = normalizeText(safe.id);
+  const title = normalizeText(safe.title);
+  const timestamp = toFiniteNumber(safe.timestamp);
+  const dismissedAt = toFiniteNumber(safe.dismissedAt);
 
   if (id === undefined || title === undefined || timestamp === null || dismissedAt === null) {
     return null;
   }
 
-  if (!isNotificationType(raw.type)) {
+  if (!isNotificationType(safe.type)) {
     return null;
   }
 
   const record: NotificationHistoryRecord = {
     id,
-    type: raw.type,
+    type: safe.type,
     title,
     timestamp,
     dismissedAt,
-    triggerSource: isTriggerSource(raw.triggerSource) ? raw.triggerSource : 'api',
+    triggerSource: isTriggerSource(safe.triggerSource) ? safe.triggerSource : 'api',
   };
 
-  const description = normalizeText(raw.description);
+  const description = normalizeText(safe.description);
   if (description !== undefined) {
     record.description = description;
   }
@@ -247,26 +249,27 @@ function sanitizeHistory(raw: unknown): NotificationHistoryRecord[] {
 
 function sanitizePlaygroundConfig(raw: unknown): PlaygroundConfiguration {
   const defaults = createDefaultPlaygroundConfig();
+  const safe = sanitizeObjectRecord(raw);
 
-  if (!isPlainRecord(raw)) {
+  if (safe === null) {
     return defaults;
   }
 
   return {
-    type: isNotificationType(raw.type) ? raw.type : defaults.type,
-    title: normalizeText(raw.title) ?? defaults.title,
-    description: normalizeOptionalString(raw.description, defaults.description),
-    position: isNotificationPosition(raw.position) ? raw.position : defaults.position,
-    duration: clampDuration(raw.duration, defaults.duration),
-    showProgress: normalizeBoolean(raw.showProgress, defaults.showProgress),
-    dismissible: normalizeBoolean(raw.dismissible, defaults.dismissible),
-    pauseOnHover: normalizeBoolean(raw.pauseOnHover, defaults.pauseOnHover),
-    sound: normalizeBoolean(raw.sound, defaults.sound),
-    stackingMode: isStackingMode(raw.stackingMode) ? raw.stackingMode : defaults.stackingMode,
-    hasPrimaryAction: normalizeBoolean(raw.hasPrimaryAction, defaults.hasPrimaryAction),
-    hasSecondaryAction: normalizeBoolean(raw.hasSecondaryAction, defaults.hasSecondaryAction),
-    primaryActionLabel: normalizeText(raw.primaryActionLabel) ?? defaults.primaryActionLabel,
-    secondaryActionLabel: normalizeText(raw.secondaryActionLabel) ?? defaults.secondaryActionLabel,
+    type: isNotificationType(safe.type) ? safe.type : defaults.type,
+    title: normalizeText(safe.title) ?? defaults.title,
+    description: normalizeOptionalString(safe.description, defaults.description),
+    position: isNotificationPosition(safe.position) ? safe.position : defaults.position,
+    duration: clampDuration(safe.duration, defaults.duration),
+    showProgress: normalizeBoolean(safe.showProgress, defaults.showProgress),
+    dismissible: normalizeBoolean(safe.dismissible, defaults.dismissible),
+    pauseOnHover: normalizeBoolean(safe.pauseOnHover, defaults.pauseOnHover),
+    sound: normalizeBoolean(safe.sound, defaults.sound),
+    stackingMode: isStackingMode(safe.stackingMode) ? safe.stackingMode : defaults.stackingMode,
+    hasPrimaryAction: normalizeBoolean(safe.hasPrimaryAction, defaults.hasPrimaryAction),
+    hasSecondaryAction: normalizeBoolean(safe.hasSecondaryAction, defaults.hasSecondaryAction),
+    primaryActionLabel: normalizeText(safe.primaryActionLabel) ?? defaults.primaryActionLabel,
+    secondaryActionLabel: normalizeText(safe.secondaryActionLabel) ?? defaults.secondaryActionLabel,
   };
 }
 
