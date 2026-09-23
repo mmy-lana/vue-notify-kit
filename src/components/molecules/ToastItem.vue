@@ -53,8 +53,11 @@
             :key="action.id"
             :variant="ACTION_VARIANT_MAP[action.variant]"
             size="sm"
+            :disabled="inFlightActionIds.length > 0"
+            :loading="isActionInFlight(action.id)"
+            loading-label="Running action"
             :aria-label="action.ariaLabel ?? action.label"
-            @click="emit('action', action)"
+            @click="handleActionClick(action)"
           >
             {{ action.label }}
           </BaseButton>
@@ -90,6 +93,7 @@ import BaseBadge from '@/components/ui/BaseBadge.vue';
 import BaseButton from '@/components/ui/BaseButton.vue';
 import BaseIcon from '@/components/ui/BaseIcon.vue';
 import type { IconName } from '@/components/ui/icon-registry';
+import { runNotificationAction } from '@/composables/useNotify';
 import { useSwipeDismiss } from '@/composables/useSwipeDismiss';
 import type { NotificationAction, NotificationItem, NotificationType } from '@/types/notify';
 
@@ -114,7 +118,12 @@ const emit = defineEmits<{
   pause: [];
   /** Restarts the countdown after a pause. */
   resume: [];
-  /** Fires a configured action button. */
+  /**
+   * Observational: emitted once per accepted activation. Execution itself is
+   * owned by this component so the button can be locked while the handler is
+   * pending; the store-level guard in `runNotificationAction` is the
+   * authoritative backstop against concurrent re-entry.
+   */
   action: [action: NotificationAction];
 }>();
 
@@ -186,6 +195,42 @@ const swipe = useSwipeDismiss({
   enabled: () => props.item.dismissible && !props.item.isDismissing,
   onDismiss: () => emit('dismiss'),
 });
+
+/**
+ * Re-entrancy lock for the action row: ids of actions whose handler has been
+ * invoked and has not settled yet.
+ *
+ * Touch hardware delivers two `click` events for a fast double-tap, and an
+ * async handler (network round-trip, confirmation dialog) stays pending long
+ * enough for both dispatches to land before the first one settles. While any
+ * action is in flight every action button on the card is disabled, and the
+ * activated one renders a spinner, so a second invocation cannot be started.
+ */
+const inFlightActionIds = ref<string[]>([]);
+
+function isActionInFlight(actionId: string): boolean {
+  return inFlightActionIds.value.includes(actionId);
+}
+
+/**
+ * Runs the action through the store, which owns dismissal and failure
+ * surfacing, then releases the lock when the handler settles. The lock is
+ * released in `finally` so a failed action stays retryable.
+ */
+async function handleActionClick(action: NotificationAction): Promise<void> {
+  if (inFlightActionIds.value.length > 0) {
+    return;
+  }
+
+  inFlightActionIds.value = [...inFlightActionIds.value, action.id];
+  emit('action', action);
+
+  try {
+    await runNotificationAction(props.item, action);
+  } finally {
+    inFlightActionIds.value = inFlightActionIds.value.filter((id) => id !== action.id);
+  }
+}
 
 function handlePointerEnter(): void {
   if (props.item.pauseOnHover) {

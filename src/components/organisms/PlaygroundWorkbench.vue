@@ -165,6 +165,19 @@
         <p v-if="lastEvent" class="mt-3 text-xs font-medium text-emerald-600 dark:text-emerald-400">
           {{ lastEvent }}
         </p>
+
+        <!--
+          Persistent counter (not auto-cleared like `lastEvent`) so a duplicate
+          action invocation is directly observable: a rapid double-tap on a
+          primary action must still increment this exactly once.
+        -->
+        <p
+          v-if="primaryActionRuns > 0"
+          data-testid="primary-action-runs"
+          class="mt-1 text-xs font-medium muted-text"
+        >
+          Primary action handler invocations: {{ primaryActionRuns }}
+        </p>
       </section>
     </div>
 
@@ -283,6 +296,16 @@ const promisePending = ref(false);
 const lastEvent = ref<string | null>(null);
 let eventTimer: ReturnType<typeof setTimeout> | null = null;
 
+/** Invocation counter for the async primary action (re-entrancy probe). */
+const primaryActionRuns = ref(0);
+
+/**
+ * Simulated network latency for the primary action. Long enough that a rapid
+ * double-tap lands both clicks while the first handler is still pending, which
+ * is the exact window the in-flight lock has to cover.
+ */
+const ACTION_LATENCY_MS = 1500;
+
 const TYPE_OPTIONS = NOTIFICATION_TYPES.map((type) => ({
   value: type,
   label: NOTIFICATION_TYPE_LABELS[type],
@@ -335,8 +358,15 @@ function buildActions(): NotificationAction[] {
       label: config.value.primaryActionLabel.trim() || 'Confirm',
       variant: 'primary',
       ariaLabel: `Run primary action for ${config.value.title}`,
-      run: (id: string) => {
-        announce(`Primary action ran for ${id.slice(0, 8)}…`);
+      run: async (id: string) => {
+        primaryActionRuns.value += 1;
+        announce(`Primary action #${primaryActionRuns.value} running for ${id.slice(0, 8)}…`);
+
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, ACTION_LATENCY_MS);
+        });
+
+        announce(`Primary action #${primaryActionRuns.value} finished for ${id.slice(0, 8)}…`);
       },
     });
   }

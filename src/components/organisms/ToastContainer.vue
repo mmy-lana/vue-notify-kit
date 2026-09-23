@@ -40,7 +40,6 @@
               @dismiss="dismiss(item.id)"
               @pause="pause(item.id)"
               @resume="resume(item.id)"
-              @action="handleAction(item, $event)"
             />
           </div>
         </TransitionGroup>
@@ -53,8 +52,8 @@
 import { computed, onBeforeUnmount, onMounted, ref, type CSSProperties } from 'vue';
 
 import ToastItem from '@/components/molecules/ToastItem.vue';
-import { runNotificationAction, useNotify } from '@/composables/useNotify';
-import type { NotificationAction, NotificationItem, NotificationPosition, StackingMode } from '@/types/notify';
+import { useNotify } from '@/composables/useNotify';
+import type { NotificationItem, NotificationPosition, StackingMode } from '@/types/notify';
 import { MOBILE_BREAKPOINT_PX, NOTIFICATION_POSITIONS } from '@/utils/constants';
 
 const props = withDefaults(
@@ -218,9 +217,5 @@ function handleFocusOut(anchor: NotificationPosition, event: FocusEvent): void {
       hoveredAnchor.value = null;
     }
   }
-}
-
-async function handleAction(item: NotificationItem, action: NotificationAction): Promise<void> {
-  await runNotificationAction(item, action);
 }
 </script>

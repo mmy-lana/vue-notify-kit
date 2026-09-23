@@ -712,11 +712,30 @@ export function notifyPromiseBridge<T>(
   return notifyPromise(executor, messages);
 }
 
+/**
+ * Re-entrancy registry for action handlers, keyed by notification id.
+ *
+ * A fast double-tap dispatches two activation events before the first async
+ * handler settles: without this lock the handler runs twice, the notification
+ * is dismissed twice, and the failure path can raise two error notifications
+ * for a single user intent. The lock is per notification (not per action),
+ * because a successful action dismisses the whole card — a second, different
+ * action on the same card would race that dismissal. Released in `finally`, so
+ * a rejected action always stays retryable.
+ */
+const inFlightActionIds = new Set<string>();
+
 /** Executes a notification action, surfacing async failures in place. */
 export async function runNotificationAction(
   item: NotificationItem,
   action: NotificationAction,
 ): Promise<void> {
+  if (inFlightActionIds.has(item.id)) {
+    return;
+  }
+
+  inFlightActionIds.add(item.id);
+
   try {
     await action.run(item.id);
     dismiss(item.id);
@@ -733,5 +752,7 @@ export async function runNotificationAction(
       remainingTime: DEFAULT_DURATION,
       timerStartedAt: monotonicNow(),
     });
+  } finally {
+    inFlightActionIds.delete(item.id);
   }
 }
