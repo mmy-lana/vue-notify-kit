@@ -304,20 +304,20 @@ const historyDrawer = useHistoryDrawer();
 // NOTE: this project is `private` and unpublished, so there is deliberately no
 // registry install command here. Publishing one would turn every copy-paste of
 // this page into a supply-chain (typosquatting) exposure.
-const INSTALL_SNIPPET = `# vue-notify-kit is an in-repo reference implementation.
-# It is NOT published to npm, so there is nothing to install.
-# Copy the primitives you need into your own project:
+const INSTALL_SNIPPET = `# Clone the reference repository:
+git clone https://github.com/mmy-lana/vue-notify-kit.git
 
+# Copy the service primitives directly into your Vue 3 project:
 mkdir -p src/composables src/components src/utils src/types
-cp <this-repo>/src/composables/useNotify.ts        src/composables/
-cp <this-repo>/src/composables/useNotifyStorage.ts src/composables/
-cp <this-repo>/src/composables/useSwipeDismiss.ts  src/composables/
-cp <this-repo>/src/composables/useNotificationSound.ts src/composables/
-cp -r <this-repo>/src/components/molecules src/components/
-cp -r <this-repo>/src/components/organisms src/components/
-cp -r <this-repo>/src/components/ui         src/components/
-cp -r <this-repo>/src/utils src/utils/
-cp -r <this-repo>/src/types src/types/`;
+cp vue-notify-kit/src/composables/useNotify.ts            src/composables/
+cp vue-notify-kit/src/composables/useNotifyStorage.ts     src/composables/
+cp vue-notify-kit/src/composables/useSwipeDismiss.ts      src/composables/
+cp vue-notify-kit/src/composables/useNotificationSound.ts src/composables/
+cp -r vue-notify-kit/src/components/molecules             src/components/
+cp -r vue-notify-kit/src/components/organisms             src/components/
+cp -r vue-notify-kit/src/components/ui                    src/components/
+cp -r vue-notify-kit/src/utils                            src/utils/
+cp -r vue-notify-kit/src/types                            src/types/`;
 
 // NOTE: the closing tags below are written with an escaped slash so the SFC
 // parser does not mistake them for the end of this component's own script block.

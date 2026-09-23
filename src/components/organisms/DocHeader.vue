@@ -238,7 +238,7 @@ const emit = defineEmits<{
 }>();
 
 /** Upstream project URL, used only when no override is configured. */
-const DEFAULT_REPOSITORY_URL = 'https://github.com/vue-notify-kit/vue-notify-kit';
+const DEFAULT_REPOSITORY_URL = 'https://github.com/mmy-lana/vue-notify-kit';
 
 /**
  * Repository link for the header action.
