@@ -237,7 +237,18 @@ const emit = defineEmits<{
   'open-history': [];
 }>();
 
-const REPOSITORY_URL = 'https://github.com/vue-notify-kit/vue-notify-kit';
+/** Upstream project URL, used only when no override is configured. */
+const DEFAULT_REPOSITORY_URL = 'https://github.com/vue-notify-kit/vue-notify-kit';
+
+/**
+ * Repository link for the header action.
+ *
+ * Configurable through `VITE_REPO_URL` (see `.env.example`) so forks and
+ * downstream templates point at their own remote. An empty or whitespace-only
+ * value is treated as "unset" rather than being passed straight to `href`, which
+ * would render a link that silently targets the current page.
+ */
+const REPOSITORY_URL = import.meta.env.VITE_REPO_URL?.trim() || DEFAULT_REPOSITORY_URL;
 
 const PRIMARY_LINKS = [
   { label: 'Playground', path: '/' },
