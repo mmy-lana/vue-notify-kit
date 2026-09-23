@@ -3,9 +3,28 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="vue-notify-kit — a headless, fully typed Vue 3 flash-notification toolkit with stacking, promise toasts, swipe gestures and zero-asset audio."
+    />
     <title>vue-notify-kit</title>
+    <script>
+      // Apply the persisted color scheme before first paint to avoid a flash of
+      // the wrong theme. Mirrors the `vue_notify_color_theme` storage contract.
+      (function () {
+        try {
+          var stored = window.localStorage.getItem('vue_notify_color_theme');
+          var theme = stored ? JSON.parse(stored) : 'system';
+          var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          var dark = theme === 'dark' || (theme === 'system' && prefersDark);
+          document.documentElement.classList.toggle('dark', dark);
+        } catch (error) {
+          /* Private mode or blocked storage: keep the default dark shell. */
+        }
+      })();
+    </script>
   </head>
-  <body class="min-h-screen bg-slate-950 text-slate-100 antialiased selection:bg-indigo-500/30 selection:text-indigo-200">
+  <body>
     <div id="app"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
