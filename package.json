@@ -2,6 +2,7 @@
   "name": "vue-notify-kit",
   "version": "0.1.0",
   "private": true,
+  "description": "Interactive demo playground and in-repo notification service reference architecture. NOT an installable npm package.",
   "type": "module",
   "scripts": {
     "dev": "vite",
